@@ -90,3 +90,88 @@ export default function InfoScreen() {
     </ScrollView>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+  },
+  section: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.grayLight,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.black,
+    marginBottom: 12,
+  },
+  description: {
+    fontSize: 14,
+    color: COLORS.gray,
+    lineHeight: 22,
+  },
+  card: {
+    backgroundColor: COLORS.grayLight,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: COLORS.primary,
+    marginBottom: 8,
+  },
+  cardText: {
+    fontSize: 14,
+    color: COLORS.gray,
+    lineHeight: 20,
+  },
+  specialtyItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.grayLight,
+  },
+  specialtyIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  specialtyText: {
+    fontSize: 14,
+    color: COLORS.black,
+    fontWeight: "500",
+  },
+  socialContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  socialButton: {
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  socialIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  socialText: {
+    fontSize: 12,
+    color: COLORS.black,
+    fontWeight: "600",
+  },
+  thankYouBox: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: "center",
+  },
+  thankYouText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: COLORS.white,
+    textAlign: "center",
+  },
+})
