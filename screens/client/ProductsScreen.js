@@ -1,8 +1,4 @@
 "use client"
-
-// screens/client/ProductsScreen.js - Tela de produtos
-// Exibe lista de produtos com busca e filtros
-
 import { useState, useEffect } from "react"
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from "react-native"
 import { getFirestore, collection, getDocs } from "firebase/firestore"
