@@ -1,7 +1,8 @@
 import React, { useState } from "react"
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, } from "react-native"
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth"
-import { COLORS } from "../../constants/colors"
+import { Colors } from "@/constants/theme";
+
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail ] = useState("")  // email

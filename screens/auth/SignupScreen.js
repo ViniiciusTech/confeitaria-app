@@ -1,8 +1,3 @@
-"use client"
-
-// screens/auth/SignupScreen.js - Tela de cadastro
-// Permite que novos usuários criem uma conta
-
 import { useState } from "react"
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from "react-native"
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth"
