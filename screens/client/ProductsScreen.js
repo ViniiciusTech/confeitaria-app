@@ -1,8 +1,8 @@
-import { collection, getDocs, getFirestore } from "firebase/firestore"
-import { useEffect, useState } from "react"
-import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
-import { COLORS } from "../../constants/colors"
-import { useAuth } from "../../contexts/AuthContext"
+import { collection, getDocs, getFirestore } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, FlatList, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { COLORS } from "../../constants/colors";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function ProductsScreen() {
   const [products, setProducts] = useState([])
@@ -17,15 +17,44 @@ export default function ProductsScreen() {
   // Categorias disponíveis
   const categories = ["Todos", "Bolos", "Cupcakes", "Tortas", "Doces"]
 
-  // Função para fazer logout
-  const handleLogout = async () => {
-    Alert.alert("Logout", "Tem certeza que deseja sair?", [
-      { text: "Cancelar", onPress: () => {}, style: "cancel" },
-      { text: "Sair", onPress: async () => {
-        await logout()
-      }, style: "destructive" }
-    ])
+const handleLogout = async () => {
+  // WEB
+  if (Platform.OS === "web") {
+    const confirmed = window.confirm("Tem certeza que deseja sair?");
+    if (!confirmed) return;
+
+    try {
+      const logoutSuccess = await logout();
+      if (!logoutSuccess) {
+        Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.");
+      }
+    } catch (error) {
+      console.error("Erro durante logout:", error);
+      Alert.alert("Erro", "Ocorreu um erro ao fazer logout.");
+    }
+
+    return;
   }
+
+  // MOBILE
+  Alert.alert("Logout", "Tem certeza que deseja sair?", [
+    { text: "Cancelar", style: "cancel" },
+    {
+      text: "Sair",
+      style: "destructive",
+      onPress: async () => {
+        try {
+          await logout();
+        } catch (error) {
+          console.error("Erro durante logout:", error);
+          Alert.alert("Erro", "Não foi possível fazer logout.");
+        }
+      }
+    }
+  ]);
+};
+
+
 
   // Função para adicionar ao carrinho
   const addToCart = (product) => {
@@ -240,8 +269,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.grayLight,
   },
   categoryButton: {
+    marginBottom: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
+    height: 35,
     borderRadius: 20,
     marginRight: 8,
     backgroundColor: COLORS.white,

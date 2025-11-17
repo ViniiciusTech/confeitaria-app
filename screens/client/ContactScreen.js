@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Alert, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { Platform } from "react-native";
 import { COLORS } from "../../constants/colors"
 import { useAuth } from "../../contexts/AuthContext"
 
@@ -9,14 +10,43 @@ export default function ContactScreen() {
   const [message, setMessage] = useState("")
   const { logout } = useAuth()
 
-  const handleLogout = async () => {
-    Alert.alert("Logout", "Tem certeza que deseja sair?", [
-      { text: "Cancelar", onPress: () => {}, style: "cancel" },
-      { text: "Sair", onPress: async () => {
-        await logout()
-      }, style: "destructive" }
-    ])
+const handleLogout = async () => {
+  // WEB
+  if (Platform.OS === "web") {
+    const confirmed = window.confirm("Tem certeza que deseja sair?");
+    if (!confirmed) return;
+
+    try {
+      const logoutSuccess = await logout();
+      if (!logoutSuccess) {
+        Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.");
+      }
+    } catch (error) {
+      console.error("Erro durante logout:", error);
+      Alert.alert("Erro", "Ocorreu um erro ao fazer logout.");
+    }
+
+    return;
   }
+
+  // MOBILE
+  Alert.alert("Logout", "Tem certeza que deseja sair?", [
+    { text: "Cancelar", style: "cancel" },
+    {
+      text: "Sair",
+      style: "destructive",
+      onPress: async () => {
+        try {
+          await logout();
+        } catch (error) {
+          console.error("Erro durante logout:", error);
+          Alert.alert("Erro", "Não foi possível fazer logout.");
+        }
+      }
+    }
+  ]);
+};
+
 
   // Função para enviar mensagem via WhatsApp
   const handleWhatsApp = () => {

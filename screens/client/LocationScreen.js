@@ -1,6 +1,7 @@
 import * as Location from "expo-location"
 import { useEffect, useState } from "react"
 import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Platform } from "react-native";
 import { COLORS } from "../../constants/colors"
 import { useAuth } from "../../contexts/AuthContext"
 
@@ -40,21 +41,44 @@ export default function LocationScreen() {
     getLocation()
   }, [])
 
-
-
 const handleLogout = async () => {
+  // WEB
   if (Platform.OS === "web") {
-    const confirmed = window.confirm("Tem certeza que deseja sair?")
-    if (confirmed) {
-      await logout()
+    const confirmed = window.confirm("Tem certeza que deseja sair?");
+    if (!confirmed) return;
+
+    try {
+      const logoutSuccess = await logout();
+      if (!logoutSuccess) {
+        Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.");
+      }
+    } catch (error) {
+      console.error("Erro durante logout:", error);
+      Alert.alert("Erro", "Ocorreu um erro ao fazer logout.");
     }
-  } else {
-    Alert.alert("Logout", "Tem certeza que deseja sair?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Sair", onPress: async () => await logout(), style: "destructive" }
-    ])
+
+    return;
   }
-}
+
+  // MOBILE
+  Alert.alert("Logout", "Tem certeza que deseja sair?", [
+    { text: "Cancelar", style: "cancel" },
+    {
+      text: "Sair",
+      style: "destructive",
+      onPress: async () => {
+        try {
+          await logout();
+        } catch (error) {
+          console.error("Erro durante logout:", error);
+          Alert.alert("Erro", "Não foi possível fazer logout.");
+        }
+      }
+    }
+  ]);
+};
+
+
 
 
   // Função para abrir no Google Maps
