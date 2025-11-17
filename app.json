@@ -3,6 +3,7 @@
     "name": "confeitaria-app",
     "slug": "confeitaria-app",
     "version": "1.0.0",
+    "entryPoint": "./App.js",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "confeitariaapp",

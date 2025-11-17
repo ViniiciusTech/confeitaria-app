@@ -164,13 +164,23 @@ function AppContent() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user && userType ? (
-          // Se usuário está logado E userType foi carregado, mostrar navegação apropriada
-          userType === "vendor" ? (
-            <Stack.Screen name="VendorApp" component={VendorNavigator} />
-          ) : (
-            <Stack.Screen name="ClientApp" component={ClientNavigator} />
-          )
+        {user ? (
+          // Se usuário está logado, verificar tipo de usuário
+          <>
+            {userType === "vendor" ? (
+              <Stack.Screen 
+                name="VendorApp" 
+                component={VendorNavigator}
+                options={{ animationEnabled: false }}
+              />
+            ) : (
+              <Stack.Screen 
+                name="ClientApp" 
+                component={ClientNavigator}
+                options={{ animationEnabled: false }}
+              />
+            )}
+          </>
         ) : (
           // Se não está logado, mostrar telas de autenticação
           <Stack.Group screenOptions={{ animationEnabled: false }}>

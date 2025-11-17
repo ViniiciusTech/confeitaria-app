@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
+import { API_BASE_URL } from '../constants/api';
 
 // Configurar instância axios
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api',
+  baseURL: API_BASE_URL || 'http://localhost:3000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -15,18 +16,21 @@ api.interceptors.request.use(
   async (config) => {
     try {
       const auth = getAuth();
-      if (auth.currentUser) {
-        const token = await auth.currentUser.getIdToken();
-        config.headers.Authorization = `Bearer ${token}`;
+      const current = auth.currentUser;
+      if (current) {
+        // Pega token atual do Firebase
+        const token = await current.getIdToken();
+        if (token) {
+          config.headers = config.headers || {};
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
     } catch (error) {
-      console.error('Erro ao obter token:', error);
+      console.warn('Erro ao obter token de autenticação:', error);
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error),
 );
 
 // Interceptador de response para tratamento de erros
@@ -219,6 +223,14 @@ const http = {
   // Download de arquivo
   downloadFile: async (endpoint, filename) => {
     try {
+      // Em ambiente React Native o download deve ser tratado por um módulo nativo (expo-file-system, react-native-fs)
+      if (typeof window === 'undefined') {
+        return {
+          success: false,
+          error: 'downloadFile não suportado neste ambiente. Use expo-file-system ou react-native-fs para downloads em dispositivos móveis.',
+        };
+      }
+
       const response = await api.get(endpoint, {
         responseType: 'blob',
       });

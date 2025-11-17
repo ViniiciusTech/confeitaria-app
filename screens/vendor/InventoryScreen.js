@@ -3,19 +3,21 @@
 import { addDoc, collection, doc, getDocs, getFirestore, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { COLORS } from "../../constants/colors";
 import { useAuth } from "../../contexts/AuthContext";
+import * as api from "../../services/api";
 
 export default function InventoryScreen() {
   const [products, setProducts] = useState([])
@@ -36,13 +38,42 @@ export default function InventoryScreen() {
 
   const categories = ["Bolos", "Cupcakes", "Tortas", "Doces", "Pães"]
 
-  // Função para fazer logout
+  // Função para fazer logout (compatível com web e mobile)
   const handleLogout = async () => {
-    Alert.alert("Logout", "Tem certeza que deseja sair?", [
+    // No web, Alert.alert não suporta botões customizados — usar confirm
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm("Tem certeza que deseja sair?")
+      if (!confirmed) return
+      try {
+        const logoutSuccess = await logout()
+        if (!logoutSuccess) {
+          Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.")
+        }
+      } catch (error) {
+        console.error("Erro durante logout:", error)
+        Alert.alert("Erro", "Ocorreu um erro ao fazer logout")
+      }
+      return
+    }
+
+    // Comportamento nativo (iOS/Android)
+    Alert.alert("Sair", "Tem certeza que deseja sair?", [
       { text: "Cancelar", onPress: () => {}, style: "cancel" },
-      { text: "Sair", onPress: async () => {
-        await logout()
-      }, style: "destructive" }
+      {
+        text: "Sair",
+        onPress: async () => {
+          try {
+            const logoutSuccess = await logout()
+            if (!logoutSuccess) {
+              Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.")
+            }
+          } catch (error) {
+            console.error("Erro durante logout:", error)
+            Alert.alert("Erro", "Ocorreu um erro ao fazer logout")
+          }
+        },
+        style: "destructive",
+      },
     ])
   }
 
@@ -50,17 +81,27 @@ export default function InventoryScreen() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "products"))
-        const productsData = []
-        querySnapshot.forEach((doc) => {
-          productsData.push({
-            id: doc.id,
-            ...doc.data(),
+        // Tentar buscar da API primeiro
+        const response = await api.getProducts()
+        
+        if (response.success) {
+          setProducts(response.data || [])
+          console.log("✅ Produtos carregados via API:", response.data?.length)
+        } else {
+          // Se a API não funcionar, usar Firestore como fallback
+          console.warn("⚠️ API indisponível, usando Firestore como fallback")
+          const querySnapshot = await getDocs(collection(db, "products"))
+          const productsData = []
+          querySnapshot.forEach((doc) => {
+            productsData.push({
+              id: doc.id,
+              ...doc.data(),
+            })
           })
-        })
-        setProducts(productsData)
+          setProducts(productsData)
+        }
       } catch (error) {
-        console.log("Erro ao buscar produtos:", error)
+        console.error("Erro ao buscar produtos:", error)
         Alert.alert("Erro", "Não foi possível carregar os produtos")
       } finally {
         setLoading(false)
@@ -78,21 +119,34 @@ export default function InventoryScreen() {
     }
 
     try {
-      await updateDoc(doc(db, "products", selectedProduct.id), {
+      // Tentar atualizar via API
+      const response = await api.patchProduct(selectedProduct.id, {
         quantity: Number.parseInt(newQuantity),
       })
 
-      // Atualizar lista local
-      setProducts(
-        products.map((p) => (p.id === selectedProduct.id ? { ...p, quantity: Number.parseInt(newQuantity) } : p)),
-      )
+      if (response.success) {
+        console.log("✅ Quantidade atualizada via API")
+        // Atualizar lista local
+        setProducts(
+          products.map((p) => (p.id === selectedProduct.id ? { ...p, quantity: Number.parseInt(newQuantity) } : p)),
+        )
+      } else {
+        // Se a API falhar, usar Firestore
+        console.warn("⚠️ API falhou, usando Firestore")
+        await updateDoc(doc(db, "products", selectedProduct.id), {
+          quantity: Number.parseInt(newQuantity),
+        })
+        setProducts(
+          products.map((p) => (p.id === selectedProduct.id ? { ...p, quantity: Number.parseInt(newQuantity) } : p)),
+        )
+      }
 
       Alert.alert("Sucesso", "Quantidade atualizada com sucesso!")
       setModalVisible(false)
       setNewQuantity("")
       setSelectedProduct(null)
     } catch (error) {
-      console.log("Erro ao atualizar quantidade:", error)
+      console.error("Erro ao atualizar quantidade:", error)
       Alert.alert("Erro", "Não foi possível atualizar a quantidade")
     }
   }
@@ -105,23 +159,38 @@ export default function InventoryScreen() {
     }
 
     try {
-      const docRef = await addDoc(collection(db, "products"), {
+      const productData = {
         name: newProduct.name,
         category: newProduct.category,
         price: Number.parseFloat(newProduct.price),
         description: newProduct.description,
         quantity: Number.parseInt(newProduct.quantity),
-        image: null, // Sem imagem no início
-        createdAt: new Date(),
-      })
+      }
 
-      // Adicionar novo produto à lista local
-      setProducts([...products, {
-        id: docRef.id,
-        ...newProduct,
-        price: Number.parseFloat(newProduct.price),
-        quantity: Number.parseInt(newProduct.quantity),
-      }])
+      // Tentar criar via API
+      const response = await api.createProduct(productData)
+
+      if (response.success) {
+        console.log("✅ Produto criado via API")
+        const newId = response.data?.id || new Date().getTime().toString()
+        const createdProduct = {
+          id: newId,
+          ...productData,
+        }
+        setProducts([...products, createdProduct])
+      } else {
+        // Se a API falhar, usar Firestore
+        console.warn("⚠️ API falhou, usando Firestore")
+        const docRef = await addDoc(collection(db, "products"), {
+          ...productData,
+          image: null,
+          createdAt: new Date(),
+        })
+        setProducts([...products, {
+          id: docRef.id,
+          ...productData,
+        }])
+      }
 
       Alert.alert("Sucesso", `${newProduct.name} criado com sucesso!`)
       setCreateModalVisible(false)
@@ -133,7 +202,7 @@ export default function InventoryScreen() {
         quantity: "",
       })
     } catch (error) {
-      console.log("Erro ao criar produto:", error)
+      console.error("Erro ao criar produto:", error)
       Alert.alert("Erro", "Não foi possível criar o produto")
     }
   }
@@ -269,7 +338,11 @@ export default function InventoryScreen() {
                       style={[styles.categoryOption, newProduct.category === cat && styles.categoryOptionActive]}
                       onPress={() => setNewProduct({ ...newProduct, category: cat })}
                     >
-                      <Text style={[styles.categoryOptionText, newProduct.category === cat && styles.categoryOptionTextActive]}>
+                      <Text
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                        style={[styles.categoryOptionText, newProduct.category === cat && styles.categoryOptionTextActive]}
+                      >
                         {cat}
                       </Text>
                     </TouchableOpacity>
@@ -548,15 +621,20 @@ const styles = StyleSheet.create({
   categoryContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    // espaçamento controlado por margem em cada opção para compatibilidade
   },
   categoryOption: {
+    minWidth: 96,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.grayMedium,
     backgroundColor: COLORS.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+    marginBottom: 8,
   },
   categoryOptionActive: {
     backgroundColor: COLORS.primary,
@@ -564,8 +642,10 @@ const styles = StyleSheet.create({
   },
   categoryOptionText: {
     color: COLORS.gray,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
+    textAlign: "center",
+    paddingHorizontal: 4,
   },
   categoryOptionTextActive: {
     color: COLORS.white,

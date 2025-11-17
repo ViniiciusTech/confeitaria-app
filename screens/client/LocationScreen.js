@@ -40,15 +40,22 @@ export default function LocationScreen() {
     getLocation()
   }, [])
 
-  // Função para fazer logout
-  const handleLogout = async () => {
+
+
+const handleLogout = async () => {
+  if (Platform.OS === "web") {
+    const confirmed = window.confirm("Tem certeza que deseja sair?")
+    if (confirmed) {
+      await logout()
+    }
+  } else {
     Alert.alert("Logout", "Tem certeza que deseja sair?", [
-      { text: "Cancelar", onPress: () => {}, style: "cancel" },
-      { text: "Sair", onPress: async () => {
-        await logout()
-      }, style: "destructive" }
+      { text: "Cancelar", style: "cancel" },
+      { text: "Sair", onPress: async () => await logout(), style: "destructive" }
     ])
   }
+}
+
 
   // Função para abrir no Google Maps
   const openGoogleMaps = () => {

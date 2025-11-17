@@ -74,13 +74,21 @@ export const AuthProvider = ({ children }) => {
   // Função para fazer logout
   const logout = async () => {
     try {
+      console.log("Iniciando logout...")
+      setLoading(true)
       await signOut(auth)
+      console.log("SignOut completado")
       setUser(null)
       setUserType(null)
       setLoading(false)
+      console.log("Logout concluído com sucesso")
+      return true
     } catch (error) {
-      console.log("Erro ao fazer logout:", error)
+      console.error("Erro ao fazer logout:", error)
+      setUser(null)
+      setUserType(null)
       setLoading(false)
+      return false
     }
   }
 
