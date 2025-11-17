@@ -1,7 +1,19 @@
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking } from 'react-native';
-import { COLORS } from '../../constants/colors'
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { COLORS } from '../../constants/colors';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function InfoScreen() {
+    const { logout } = useAuth()
+
+    const handleLogout = async () => {
+      Alert.alert("Logout", "Tem certeza que deseja sair?", [
+        { text: "Cancelar", onPress: () => {}, style: "cancel" },
+        { text: "Sair", onPress: async () => {
+          await logout()
+        }, style: "destructive" }
+      ])
+    }
+
     const openSocialMedia = (url) => {
         Linking.openURL(url).catch(() => {
             alert('Não foi possível abrir o link.');
@@ -10,6 +22,13 @@ export default function InfoScreen() {
 
     return (
     <ScrollView style={styles.container}>
+      {/* Botão de Logout */}
+      <View style={styles.logoutContainer}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Sair</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Seção de apresentação */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Sobre Nós</Text>
@@ -173,5 +192,23 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: COLORS.white,
     textAlign: "center",
+  },
+  logoutContainer: {
+    padding: 12,
+    backgroundColor: COLORS.grayLight,
+    alignItems: "flex-end",
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.grayMedium,
+  },
+  logoutButton: {
+    backgroundColor: "#FF6B6B",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  logoutText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+    fontSize: 14,
   },
 })

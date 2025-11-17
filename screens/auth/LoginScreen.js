@@ -1,7 +1,7 @@
-import React, { useState } from "react"
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, } from "react-native"
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth"
-import { Colors } from "@/constants/theme";
+import { useState } from "react"
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { COLORS } from "../../constants/colors"
 
 
 export default function LoginScreen({ navigation }) {
@@ -27,14 +27,14 @@ export default function LoginScreen({ navigation }) {
             let mensagem = "Erro ao fazer login"
 
             if (error.code === "auth/user-not-found") {
-                mensagem = "Usario não incontrado."
+                mensagem = "Usuário não encontrado."
             } else if (error.code === "auth/wrong-password") {
                 mensagem = "Senha incorreta."
             } else if (error.code === "auth/invalid-email") {
                 mensagem = "Email inválido."
             }
 
-            alert("Erro", mensagem)
+            Alert.alert("Erro", mensagem)
         } finally {
             // sempre sera executado
             setLoading(false)
@@ -43,7 +43,7 @@ export default function LoginScreen({ navigation }) {
     }
         
    return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Cabeçalho  */}
       <View style={styles.header}>
         <Text style={styles.title}>Confeitaria</Text>
@@ -61,7 +61,7 @@ export default function LoginScreen({ navigation }) {
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
-                editable={!loading}  // ddddesabikita enquanto carrega 
+                editable={!loading}  // desabilita enquanto carrega 
             />
           </View>
 
@@ -75,11 +75,11 @@ export default function LoginScreen({ navigation }) {
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword} // mostra ou esconde a senha
-                    editable={!loading}  // ddddesabikita enquanto carrega
+                    editable={!loading}  // desabilita enquanto carrega
                 />
                 {/* Botão para mostrar/ocultar senha  */}
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Text style={styles.showPassword}>
+                    <Text style={styles.togglePassword}>
                         {showPassword ? "Ocultar" : "Mostrar"}
                     </Text>
                 </TouchableOpacity>
@@ -93,7 +93,7 @@ export default function LoginScreen({ navigation }) {
             disabled={loading} // desabilita o botão enquanto carrega
         >
             {loading ? (
-                // spiner 
+                // spinner 
             <ActivityIndicator color={COLORS.white} />
             ) : (
             <Text style={styles.buttonText}>Entrar</Text>
@@ -103,12 +103,12 @@ export default function LoginScreen({ navigation }) {
         {/* Link para tela de cadastro  */}
         <View style={styles.footer}>
             <Text style={styles.footerText}>Não tem uma conta?</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+            <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
                 <Text style={styles.link}> Criar conta</Text>
             </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </ScrollView>
    )
 }
 
@@ -117,7 +117,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
+  },
+  contentContainer: {
     paddingHorizontal: 20,
+    paddingVertical: 40,
     justifyContent: "center",
   },
   header: {
@@ -173,6 +176,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 12,
     fontWeight: "600",
+    paddingLeft: 8,
   },
   button: {
     backgroundColor: COLORS.primary,
@@ -180,6 +184,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginTop: 10,
+    minHeight: 50,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -193,6 +198,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     marginTop: 20,
+    flexWrap: "wrap",
   },
   footerText: {
     color: COLORS.gray,

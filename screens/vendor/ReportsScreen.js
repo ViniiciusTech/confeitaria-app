@@ -1,11 +1,10 @@
-"use client"
 
 // screens/vendor/ReportsScreen.js - Tela de relatórios
 // Exibe estatísticas e relatórios de vendas
 
-import { useState, useEffect } from "react"
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from "react-native"
-import { getFirestore, collection, getDocs } from "firebase/firestore"
+import { collection, getDocs, getFirestore } from "firebase/firestore"
+import { useEffect, useState } from "react"
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native"
 import { COLORS } from "../../constants/colors"
 
 export default function ReportsScreen() {

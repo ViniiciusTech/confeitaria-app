@@ -1,12 +1,22 @@
-"use client"
 import { useState } from "react"
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert, Linking } from "react-native"
+import { Alert, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { COLORS } from "../../constants/colors"
+import { useAuth } from "../../contexts/AuthContext"
 
 export default function ContactScreen() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
+  const { logout } = useAuth()
+
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Tem certeza que deseja sair?", [
+      { text: "Cancelar", onPress: () => {}, style: "cancel" },
+      { text: "Sair", onPress: async () => {
+        await logout()
+      }, style: "destructive" }
+    ])
+  }
 
   // Função para enviar mensagem via WhatsApp
   const handleWhatsApp = () => {
@@ -42,6 +52,13 @@ export default function ContactScreen() {
 
   return (
     <ScrollView style={styles.container}>
+      {/* Botão de Logout */}
+      <View style={styles.logoutContainer}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Sair</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Seção de contato rápido */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Formas de Contato</Text>
@@ -208,5 +225,23 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 16,
     fontWeight: "bold",
+  },
+  logoutContainer: {
+    padding: 12,
+    backgroundColor: COLORS.grayLight,
+    alignItems: "flex-end",
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.grayMedium,
+  },
+  logoutButton: {
+    backgroundColor: "#FF6B6B",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  logoutText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+    fontSize: 14,
   },
 })

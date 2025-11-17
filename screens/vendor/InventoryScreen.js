@@ -1,28 +1,50 @@
-"use client";
 
 // Permite que vendedores gerenciem o inventário de produtos
-import React, { useState, useEffect } from "react";
+import { addDoc, collection, doc, getDocs, getFirestore, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  Modal,
-  TextInput,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { getFirestore, collection, getDocs, updateDoc, doc } from "firebase/firestore"
-import { COLORS } from "../../constants/colors"
+import { COLORS } from "../../constants/colors";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function InventoryScreen() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [modalVisible, setModalVisible] = useState(false)
+  const [createModalVisible, setCreateModalVisible] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [newQuantity, setNewQuantity] = useState("")
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    category: "Bolos",
+    price: "",
+    description: "",
+    quantity: "",
+  })
   const db = getFirestore()
+  const { logout } = useAuth()
+
+  const categories = ["Bolos", "Cupcakes", "Tortas", "Doces", "Pães"]
+
+  // Função para fazer logout
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Tem certeza que deseja sair?", [
+      { text: "Cancelar", onPress: () => {}, style: "cancel" },
+      { text: "Sair", onPress: async () => {
+        await logout()
+      }, style: "destructive" }
+    ])
+  }
 
   // Buscar produtos do Firestore
   useEffect(() => {
@@ -75,6 +97,47 @@ export default function InventoryScreen() {
     }
   }
 
+  // Função para criar novo produto
+  const handleCreateProduct = async () => {
+    if (!newProduct.name || !newProduct.price || !newProduct.quantity || !newProduct.description) {
+      Alert.alert("Erro", "Por favor, preencha todos os campos")
+      return
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, "products"), {
+        name: newProduct.name,
+        category: newProduct.category,
+        price: Number.parseFloat(newProduct.price),
+        description: newProduct.description,
+        quantity: Number.parseInt(newProduct.quantity),
+        image: null, // Sem imagem no início
+        createdAt: new Date(),
+      })
+
+      // Adicionar novo produto à lista local
+      setProducts([...products, {
+        id: docRef.id,
+        ...newProduct,
+        price: Number.parseFloat(newProduct.price),
+        quantity: Number.parseInt(newProduct.quantity),
+      }])
+
+      Alert.alert("Sucesso", `${newProduct.name} criado com sucesso!`)
+      setCreateModalVisible(false)
+      setNewProduct({
+        name: "",
+        category: "Bolos",
+        price: "",
+        description: "",
+        quantity: "",
+      })
+    } catch (error) {
+      console.log("Erro ao criar produto:", error)
+      Alert.alert("Erro", "Não foi possível criar o produto")
+    }
+  }
+
   // Componente de cada produto
   const ProductItem = ({ item }) => (
     <View style={styles.productItem}>
@@ -82,9 +145,9 @@ export default function InventoryScreen() {
         <Text style={styles.productName}>{item.name}</Text>
         <Text style={styles.productCategory}>{item.category}</Text>
         <View style={styles.productFooter}>
-          <Text style={styles.productPrice}>R$ {item.price.toFixed(2)}</Text>
+          <Text style={styles.productPrice}>R$ {(item.price || 0).toFixed(2)}</Text>
           <View style={[styles.quantityBadge, item.quantity < 5 && styles.quantityBadgeLow]}>
-            <Text style={styles.quantityText}>{item.quantity} em estoque</Text>
+            <Text style={styles.quantityText}>{item.quantity || 0} em estoque</Text>
           </View>
         </View>
       </View>
@@ -111,6 +174,18 @@ export default function InventoryScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Botão de Logout */}
+      <View style={styles.logoutContainer}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Sair</Text>
+        </TouchableOpacity>
+
+        {/* Botão para criar novo produto */}
+        <TouchableOpacity style={styles.createButton} onPress={() => setCreateModalVisible(true)}>
+          <Text style={styles.createButtonText}>+ Novo Produto</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Cabeçalho com estatísticas */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
@@ -160,6 +235,93 @@ export default function InventoryScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.confirmButton} onPress={handleUpdateQuantity}>
                 <Text style={styles.confirmButtonText}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal para criar novo produto */}
+      <Modal visible={createModalVisible} transparent animationType="slide" onRequestClose={() => setCreateModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Criar Novo Produto</Text>
+
+            <ScrollView style={styles.formContainer}>
+              {/* Campo Nome */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Nome do Produto</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: Bolo de Chocolate"
+                  value={newProduct.name}
+                  onChangeText={(text) => setNewProduct({ ...newProduct, name: text })}
+                />
+              </View>
+
+              {/* Campo Categoria */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Categoria</Text>
+                <View style={styles.categoryContainer}>
+                  {categories.map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[styles.categoryOption, newProduct.category === cat && styles.categoryOptionActive]}
+                      onPress={() => setNewProduct({ ...newProduct, category: cat })}
+                    >
+                      <Text style={[styles.categoryOptionText, newProduct.category === cat && styles.categoryOptionTextActive]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Campo Preço */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Preço (R$)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: 50.00"
+                  value={newProduct.price}
+                  onChangeText={(text) => setNewProduct({ ...newProduct, price: text })}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+
+              {/* Campo Quantidade */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Quantidade em Estoque</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ex: 10"
+                  value={newProduct.quantity}
+                  onChangeText={(text) => setNewProduct({ ...newProduct, quantity: text })}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* Campo Descrição */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Descrição</Text>
+                <TextInput
+                  style={[styles.input, styles.descriptionInput]}
+                  placeholder="Ex: Bolo delicioso de chocolate com cobertura"
+                  value={newProduct.description}
+                  onChangeText={(text) => setNewProduct({ ...newProduct, description: text })}
+                  multiline
+                  numberOfLines={4}
+                />
+              </View>
+            </ScrollView>
+
+            {/* Botões */}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setCreateModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmButton} onPress={handleCreateProduct}>
+                <Text style={styles.confirmButtonText}>Criar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -345,5 +507,71 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 14,
     fontWeight: "bold",
+  },
+  logoutContainer: {
+    padding: 12,
+    backgroundColor: COLORS.grayLight,
+    alignItems: "flex-end",
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.grayMedium,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
+  logoutButton: {
+    backgroundColor: "#FF6B6B",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  logoutText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  createButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  createButtonText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  formContainer: {
+    maxHeight: 400,
+    marginBottom: 12,
+  },
+  categoryContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  categoryOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: COLORS.grayMedium,
+    backgroundColor: COLORS.white,
+  },
+  categoryOptionActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  categoryOptionText: {
+    color: COLORS.gray,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  categoryOptionTextActive: {
+    color: COLORS.white,
+  },
+  descriptionInput: {
+    height: 100,
+    paddingTop: 12,
   },
 })

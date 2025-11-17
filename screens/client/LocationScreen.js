@@ -1,12 +1,13 @@
-"use client"
-import { useState, useEffect } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking } from "react-native"
 import * as Location from "expo-location"
+import { useEffect, useState } from "react"
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { COLORS } from "../../constants/colors"
+import { useAuth } from "../../contexts/AuthContext"
 
 export default function LocationScreen() {
   const [location, setLocation] = useState(null)
   const [loading, setLoading] = useState(true)
+  const { logout } = useAuth()
 
   // Coordenadas da confeitaria 
   const bakeryLocation = {
@@ -39,6 +40,16 @@ export default function LocationScreen() {
     getLocation()
   }, [])
 
+  // Função para fazer logout
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Tem certeza que deseja sair?", [
+      { text: "Cancelar", onPress: () => {}, style: "cancel" },
+      { text: "Sair", onPress: async () => {
+        await logout()
+      }, style: "destructive" }
+    ])
+  }
+
   // Função para abrir no Google Maps
   const openGoogleMaps = () => {
     const url = `https://www.google.com/maps/search/${bakeryLocation.latitude},${bakeryLocation.longitude}`
@@ -56,7 +67,14 @@ export default function LocationScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
+      {/* Botão de Logout */}
+      <View style={styles.logoutContainer}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Sair</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Informações da localização */}
       <View style={styles.infoSection}>
         <Text style={styles.title}>{bakeryLocation.name}</Text>
@@ -99,7 +117,7 @@ export default function LocationScreen() {
           <Text style={styles.detailValue}>Seg-Sex: 9h às 18h</Text>
         </View>
       </View>
-    </View>
+    </ScrollView>
   )
 }
 
@@ -191,5 +209,23 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 14,
     color: COLORS.gray,
+  },
+  logoutContainer: {
+    padding: 12,
+    backgroundColor: COLORS.grayLight,
+    alignItems: "flex-end",
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.grayMedium,
+  },
+  logoutButton: {
+    backgroundColor: "#FF6B6B",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  logoutText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+    fontSize: 14,
   },
 })

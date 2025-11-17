@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from "react"
-import { getAuth, onAuthStateChanged } from "firebase/auth"
-import { getFirestore, doc, getDoc } from "firebase/firestore"
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth"
+import { doc, getDoc, getFirestore } from "firebase/firestore"
+import { createContext, useContext, useEffect, useState } from "react"
 
 const AuthContext = createContext()
 
@@ -14,36 +14,78 @@ export const AuthProvider = ({ children }) => {
   const db = getFirestore()
    
   useEffect(() => {
+    let isMounted = true
+    let timeoutId
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        
-        setUser(currentUser) // User logado
-        
-        
-        try { // Buscar tipo de usuário no Firestore
-          const userDoc = await getDoc(doc(db, "users", currentUser.uid))
-          if (userDoc.exists()) {
-            // pegar tipo de usuário
-            setUserType(userDoc.data().userType)
+      if (!isMounted) return
+
+      console.log("onAuthStateChanged triggered, currentUser:", !!currentUser)
+
+      try {
+        if (currentUser) {
+          console.log("User logged in:", currentUser.uid)
+          setUser(currentUser)
+          
+          try {
+            console.log("Fetching userType from Firestore...")
+            const userDoc = await getDoc(doc(db, "users", currentUser.uid))
+            if (userDoc.exists() && isMounted) {
+              console.log("UserType found:", userDoc.data().userType)
+              setUserType(userDoc.data().userType)
+              setLoading(false)
+            } else {
+              console.log("User document not found")
+              setLoading(false)
+            }
+          } catch (error) {
+            console.error("Erro ao buscar tipo de usuário:", error)
+            setLoading(false)
           }
-        } catch (error) {
-          console.log("Erro ao buscar tipo de usuário:", error)
+        } else {
+          console.log("No user logged in")
+          if (isMounted) {
+            setUser(null)
+            setUserType(null)
+            setLoading(false)
+          }
         }
-      } else {
-        // User não logado
-        setUser(null)
-        setUserType(null)
+      } catch (error) {
+        console.error("Erro geral em onAuthStateChanged:", error)
+        setLoading(false)
       }
-      // final
-      setLoading(false)
     })
 
-    // desinscrever quando componente desmontar
-    return unsubscribe
+    // Timeout de 10 segundos como fallback
+    timeoutId = setTimeout(() => {
+      if (isMounted) {
+        console.log("Timeout acionado - setando loading para false")
+        setLoading(false)
+      }
+    }, 10000)
+
+    return () => {
+      isMounted = false
+      clearTimeout(timeoutId)
+      unsubscribe()
+    }
   }, [])
 
+  // Função para fazer logout
+  const logout = async () => {
+    try {
+      await signOut(auth)
+      setUser(null)
+      setUserType(null)
+      setLoading(false)
+    } catch (error) {
+      console.log("Erro ao fazer logout:", error)
+      setLoading(false)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, userType, loading }}>
+    <AuthContext.Provider value={{ user, userType, loading, logout }}>
       {children}
     </AuthContext.Provider>
   )
